@@ -42,3 +42,11 @@ filter {
 # set timestamp initially
 chmod +x set_timestamp.sh
 ./set_timestamp.sh
+
+## updated body
+body => {
+                    code => "
+                        last_timestamp = File.read('/path/to/last_timestamp.txt').strip
+                        '{ "returnFormat": "json", "timestamp": "' + last_timestamp + '" }'
+                    "
+                }
