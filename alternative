@@ -1,0 +1,35 @@
+input {
+    exec {
+        command => "echo placeholder"
+        interval => 600
+        codec => "json"
+    }
+}
+
+filter {
+    ruby {
+        init => "require 'json'"
+        code => "
+            last_timestamp = File.read('/path/to/last_timestamp.txt').strip
+            body = { 'returnFormat' => 'json', 'timestamp' => last_timestamp }.to_json
+            event.set('request_body', body)
+            
+            # Code to write the current timestamp to a file
+            File.open('/path/to/last_timestamp.txt', 'w') { |file| file.write(Time.now.to_i) }
+        "
+    }
+    http {
+        url => "https://misp-instance-url/events/restSearch"
+        method => "post"
+        headers => {
+            "Authorization" => "YOUR_MISP_API_KEY"
+            "Accept" => "application/json"
+            "Content-Type" => "application/json"
+        }
+        body => "%{request_body}"
+    }
+}
+
+output {
+    # your output configuration, for example, sending to Elasticsearch
+}
