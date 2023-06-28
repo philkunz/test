@@ -1,0 +1,44 @@
+# filesave
+#!/bin/bash
+
+# Read the last timestamp from the file
+LAST_TIMESTAMP=$(cat /path/to/last_timestamp.txt)
+
+# Export it as an environment variable
+export LAST_FETCHED_TIMESTAMP=${LAST_TIMESTAMP}
+
+# Run Logstash
+/path/to/logstash -f /path/to/logstash_pipeline.conf
+
+# misp pipeline
+input {
+    http_poller {
+        urls => {
+            misp => {
+                method => post
+                url => "https://misp-instance-url/events/restSearch"
+                headers => {
+                    "Authorization" => "YOUR_MISP_API_KEY"
+                    "Accept" => "application/json"
+                    "Content-Type" => "application/json"
+                }
+                # Use environment variable for the timestamp
+                body => '{ "returnFormat": "json", "timestamp": "${LAST_FETCHED_TIMESTAMP}" }'
+            }
+        }
+        request_timeout => 60
+        schedule => { every => "10m" }
+        codec => "json"
+    }
+}
+
+filter {
+    ruby {
+        # Code to write the current timestamp to a file
+        code => "File.open('/path/to/last_timestamp.txt', 'w') { |file| file.write(Time.now.to_i) }"
+    }
+}
+
+# set timestamp initially
+chmod +x set_timestamp.sh
+./set_timestamp.sh
