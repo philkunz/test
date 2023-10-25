@@ -1,0 +1,38 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 200,
+  "height": 200,
+  "padding": 5,
+
+  "data": [
+    {
+      "name": "table",
+      "values": [
+        {"category": "A", "amount": 28}
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "color",
+      "type": "linear",
+      "domain": [0, 100],
+      "range": ["#f00", "#0f0"]
+    }
+  ],
+
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "width": {"value": 200},
+          "height": {"value": 200},
+          "fill": {"scale": "color", "field": "amount"}
+        }
+      }
+    }
+  ]
+}
