@@ -14,7 +14,7 @@
           "size": 1,
           "sort": [
             {
-              "timestamp_field": {
+              "dateIso": {
                 "order": "desc"
               }
             }
@@ -24,20 +24,20 @@
               "must": [
                 {
                   "term": {
-                    "field1": "some_value"
+                    "name.keyword": "Non Spam : accept"
                   }
                 }
               ]
             }
           },
-          "_source": ["field2"]
+          "_source": ["amount"]
         }
       },
       "format": {"property": "hits.hits"},
       "transform": [
         {
           "type": "project",
-          "fields": ["_source.field2"]
+          "fields": ["_source.amount"]
         }
       ]
     }
@@ -47,7 +47,7 @@
     {
       "name": "color",
       "type": "linear",
-      "domain": [0, 100],
+      "domain": [0, 500000],
       "range": ["#f00", "#0f0"]
     }
   ],
@@ -60,7 +60,21 @@
         "enter": {
           "width": {"value": 200},
           "height": {"value": 200},
-          "fill": {"scale": "color", "field": "_source.field2"}
+          "fill": {"scale": "color", "field": "_source.amount"}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"value": 100},
+          "y": {"value": 100},
+          "fontSize": {"value": 32},
+          "text": {"field": "_source.amount"},
+          "align": {"value": "center"},
+          "baseline": {"value": "middle"}
         }
       }
     }
