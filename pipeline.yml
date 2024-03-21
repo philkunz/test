@@ -1,0 +1,9 @@
+- pipeline.id: my_first_pipeline
+  path.config: "/etc/logstash/conf.d/first_pipeline.conf"
+  pipeline.workers: 2
+  queue.type: persisted
+
+- pipeline.id: my_second_pipeline
+  path.config: "/etc/logstash/conf.d/second_pipeline.conf"
+  pipeline.workers: 4
+  queue.type: memory
