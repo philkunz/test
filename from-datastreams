@@ -1,0 +1,67 @@
+input {
+  # Input for the first data stream
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "data_stream_1"
+    query => '{
+      "size": 1,
+      "sort": [
+        {
+          "@timestamp": {
+            "order": "desc"
+          }
+        }
+      ]
+    }'
+    tags => ["data_stream_1"]
+  }
+
+  # Input for the second data stream
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "data_stream_2"
+    query => '{
+      "size": 1,
+      "sort": [
+        {
+          "@timestamp": {
+            "order": "desc"
+          }
+        }
+      ]
+    }'
+    tags => ["data_stream_2"]
+  }
+
+  # Add more inputs as needed for additional data streams
+}
+
+filter {
+  ruby {
+    code => '
+      require "time"
+      event_time = Time.parse(event.get("@timestamp"))
+      current_time = Time.now
+      difference_in_hours = (current_time - event_time) / 3600
+      status = difference_in_hours > 24 ? "unhealthy" : "healthy"
+      data_stream = event.get("tags")[0]
+      event.set("status_object", {
+        "data_stream" => data_stream,
+        "status" => status
+      })
+    '
+  }
+}
+
+output {
+  # Output to console for debugging
+  stdout {
+    codec => json
+  }
+
+  # Output to Elasticsearch or another destination
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "status_entries"
+  }
+}
