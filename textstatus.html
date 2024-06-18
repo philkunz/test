@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grafana Query</title>
+</head>
+<body>
+  <div id="grafana-query-result"></div>
+
+  <script>
+    // URL of the Grafana API
+    const grafanaApiUrl = 'https://your-grafana-instance.com/api/datasources/proxy/1/query';
+
+    // Example query (adjust according to your data source and query)
+    const query = {
+      "from": "now-1h",
+      "to": "now",
+      "queries": [
+        {
+          "refId": "A",
+          "intervalMs": 60000,
+          "maxDataPoints": 1000,
+          "datasourceId": 1,
+          "rawSql": "SELECT * FROM your_table WHERE $__timeFilter(time_column)",
+          "format": "table"
+        }
+      ]
+    };
+
+    // Fetch the data from Grafana API
+    fetch(grafanaApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY'  // Replace with your Grafana API key
+      },
+      body: JSON.stringify(query)
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Process and display the data
+      const result = data.results.A.frames[0].data;
+      let html = '<table border="1">';
+      html += '<tr><th>Time</th><th>Value</th></tr>';
+      result.forEach(row => {
+        html += `<tr><td>${new Date(row[0]).toLocaleString()}</td><td>${row[1]}</td></tr>`;
+      });
+      html += '</table>';
+      document.getElementById('grafana-query-result').innerHTML = html;
+    })
+    .catch(error => {
+      console.error('Error fetching data:', error);
+      document.getElementById('grafana-query-result').innerText = 'Error fetching data';
+    });
+  </script>
+</body>
+</html>
