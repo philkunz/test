@@ -1,0 +1,17 @@
+filter {
+  grok {
+    match => { 
+      "message" => [
+        "%{HOSTNAME:hostname} %{IPORHOST:source_ip} \[%{HTTPDATE:timestamp}\] \"%{WORD:method} %{URIPATHPARAM:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:response_code} %{NUMBER:bytes_sent} \"-\" \"-\"",
+        "%{HOSTNAME:hostname} %{IPORHOST:source_ip} \[%{HTTPDATE:timestamp}\] \"%{WORD:method} %{URIPATHPARAM:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:response_code} %{NUMBER:bytes_sent} \"%{DATA:referrer}\" \"%{DATA:user_agent}\""
+      ]
+    }
+  }
+  date {
+    match => [ "timestamp", "dd/MMM/yyyy:HH:mm:ss Z" ]
+    target => "@timestamp"
+  }
+  mutate {
+    remove_field => ["message"]
+  }
+}
