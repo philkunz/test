@@ -1,0 +1,22 @@
+filter {
+  grok {
+    match => {
+      "message" => [
+        "Betroffene Domain\s*:\s*%{GREEDYDATA:domain}",
+        "Beginn des Vorfalls\s*:\s*%{TIMESTAMP_ISO8601:start_time}",
+        "Ende des Vorfalls\s*:\s*%{TIMESTAMP_ISO8601:end_time}",
+        "Behandelte Anfragen\s*:\s*%{NUMBER:requests:int}",
+        "Anzahl beteiligter Client-IP-Adressen\s*:\s*%{NUMBER:client_ips:int}",
+        "\s*%{NUMBER:request_count:int}\s*%{IP:ip_address}\s*%{WORD:country_code}\s*%{GREEDYDATA:organization}\s*%{WORD:status}"
+      ]
+    }
+  }
+
+  if "_grokparsefailure" in [tags] {
+    drop { }
+  }
+
+  mutate {
+    convert => { "request_count" => "integer" }
+  }
+}
