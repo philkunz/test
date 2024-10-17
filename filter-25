@@ -1,0 +1,61 @@
+filter {
+  ruby {
+    code => '
+      # Get the content of the document.message as a string
+      message_content = event.get("document.message")
+      
+      # Split the content by lines
+      lines = message_content.split("\n")
+
+      # Define variables to hold the processed events
+      clientcount_events = []
+      count_events = []
+      urlcount_events = []
+
+      # Initialize the type of content to track where we are
+      current_type = nil
+
+      # Loop over each line in the message content
+      lines.each do |line|
+        # Check for markers to identify sections and switch type
+        if line.include?("clientcount")
+          current_type = "clientcount"
+          next
+        elsif line.include?("count")
+          current_type = "count"
+          next
+        elsif line.include?("urlcount")
+          current_type = "urlcount"
+          next
+        end
+
+        # Skip if the line is empty or not relevant
+        next if line.strip.empty?
+
+        # Process the line based on the current type
+        case current_type
+        when "clientcount"
+          # Split and parse the data for clientcount
+          data = line.split(" ")
+          clientcount_events << { "type" => "clientcount", "id" => data[0], "ip" => data[1] }
+        when "count"
+          # Split and parse the data for count
+          data = line.split(" ")
+          count_events << { "type" => "count", "id" => data[0], "ip" => data[1], "status" => data[2], "url" => data[3] }
+        when "urlcount"
+          # Split and parse the data for urlcount
+          data = line.split(" ")
+          urlcount_events << { "type" => "urlcount", "count" => data[0], "url" => data[1] }
+        end
+      end
+
+      # Cancel the original event
+      event.cancel
+
+      # Generate new events for clientcount, count, and urlcount sections
+      clientcount_events.each { |new_event| new_event.each { |key, value| event.set(key, value) }; event.clone }
+      count_events.each { |new_event| new_event.each { |key, value| event.set(key, value) }; event.clone }
+      urlcount_events.each { |new_event| new_event.each { |key, value| event.set(key, value) }; event.clone }
+    '
+  }
+}
