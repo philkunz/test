@@ -1,0 +1,78 @@
+input {
+  exec {
+    command => "ruby /path/to/fetch_unseen_emails.rb"
+    interval => 300 # Fetch every 5 minutes
+  }
+}
+
+filter {
+  ruby {
+    code => "
+      require 'net/imap'
+      require 'mail'
+
+      def fetch_and_delete_emails(server:, port:, username:, password:, folder: 'INBOX')
+        imap = Net::IMAP.new(server, port, ssl: true)
+        imap.login(username, password)
+        imap.select(folder)
+
+        unseen_ids = imap.search(['UNSEEN'])
+        emails = []
+
+        unseen_ids.each do |email_id|
+          message_data = imap.fetch(email_id, 'RFC822').first
+          raw_email = message_data.attr['RFC822']
+          mail = Mail.read_from_string(raw_email)
+
+          attachments = mail.attachments.map do |attachment|
+            {
+              filename: attachment.filename,
+              content: attachment.decoded,
+              mime_type: attachment.mime_type
+            }
+          end
+
+          body = if mail.text_part
+                   mail.text_part.decoded
+                 elsif mail.html_part
+                   mail.html_part.decoded
+                 else
+                   mail.body.decoded
+                 end
+
+          emails << {
+            attachments: attachments,
+            body: body || ''
+          }
+
+          # Mark email for deletion
+          imap.store(email_id, '+FLAGS', [:Deleted])
+        end
+
+        # Permanently delete marked emails
+        imap.expunge
+
+        imap.logout
+        imap.disconnect
+
+        emails
+      end
+
+      # Fetch and delete emails
+      emails = fetch_and_delete_emails(
+        server: 'imap.gmail.com',
+        port: 993,
+        username: 'your_email@gmail.com',
+        password: 'your_password'
+      )
+
+      event.set('emails', emails)
+    "
+  }
+}
+
+output {
+  stdout {
+    codec => rubydebug
+  }
+}
