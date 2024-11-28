@@ -1,0 +1,50 @@
+filter {
+  # Parse the JSON string under `message`
+  json {
+    source => "[document][message]"
+    target => "parsed_message"
+  }
+
+  # Combine MAP and SPH into a single array of key-value pairs for splitting
+  ruby {
+    code => '
+      map = event.get("[parsed_message][MAP]") || {}
+      sph = event.get("[parsed_message][SPH]") || {}
+
+      combined = []
+      map.each { |code, amount| combined << { "system" => "MAP", "code" => code, "amount" => amount } }
+      sph.each { |code, amount| combined << { "system" => "SPH", "code" => code, "amount" => amount } }
+
+      event.set("to_split", combined)
+    '
+  }
+
+  # Split the combined array into individual events
+  split {
+    field => "to_split"
+  }
+
+  # Extract data from the split event
+  mutate {
+    add_field => {
+      "date" => "%{[parsed_message][Datum]}"
+      "system" => "%{[to_split][system]}"
+      "code" => "%{[to_split][code]}"
+      "amount" => "%{[to_split][amount]}"
+    }
+  }
+
+  # Convert date to ISO 8601 format
+  ruby {
+    code => '
+      require "time"
+      date = event.get("date")
+      event.set("date", Time.parse(date).iso8601) if date
+    '
+  }
+
+  # Clean up unnecessary fields
+  mutate {
+    remove_field => ["document", "parsed_message", "to_split"]
+  }
+}
